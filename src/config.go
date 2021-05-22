@@ -11,9 +11,18 @@ type MysqlConfig struct {
 	Table    string
 }
 
+type RedisConfig struct {
+	Host     string
+	Port     int
+	Passwd   string
+	DB int
+}
+
 type InstanceConfig struct {
-	InstanceType string
-	Config       interface{}
+	FromType   string
+	ToType     string
+	FromConfig interface{}
+	ToConfig   interface{}
 }
 
 var instances map[string]*InstanceConfig

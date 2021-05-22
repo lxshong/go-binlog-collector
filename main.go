@@ -20,25 +20,32 @@ func main() {
 	//	fmt.Println(column.IsUnsigned)
 	//}
 	instance := "test.tb_jd_district"
-	src.AddInstanceConfig(instance,&src.InstanceConfig{
-		InstanceType: "mysql",
-		Config: src.MysqlConfig{
-			Host: "127.0.0.1",
-			Port: 23306,
-			User: "root",
-			Passwd: "123456",
+	src.AddInstanceConfig(instance, &src.InstanceConfig{
+		FromType: "mysql",
+		FromConfig: &src.MysqlConfig{
+			Host:     "127.0.0.1",
+			Port:     23306,
+			User:     "root",
+			Passwd:   "123456",
 			DataBase: "test",
-			Table: "tb_jd_district",
+			Table:    "tb_jd_district",
+		},
+		ToType: "redis",
+		ToConfig: &src.RedisConfig{
+			Host:   "127.0.0.1",
+			Port:   26379,
+			Passwd: "",
+			DB:     0,
 		},
 	})
 
 	//convert,_ := src.NewConverter(instance)
 	//convert.GetTable("test","tb_jd_district")
 	//fmt.Println(convert)
-	if collector,err := src.NewCollector(instance);err != nil {
+	if collector, err := src.NewCollector(instance); err != nil {
 		fmt.Println(err)
-	}else{
-		if err := collector.Run();err != nil {
+	} else {
+		if err := collector.Run(); err != nil {
 			fmt.Println(err)
 		}
 	}

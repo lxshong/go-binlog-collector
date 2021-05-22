@@ -3,7 +3,6 @@ package src
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
 )
@@ -12,23 +11,17 @@ type collector interface {
 	Run() error
 }
 
-type event struct {
-	EventType string
-	Schema    string
-	Table     string
-}
-
 func NewCollector(instance string) (collector, error) {
 	config, err := getInstanceConfig(instance)
 	if err != nil {
 		return nil, err
 	}
-	switch config.InstanceType {
+	switch config.FromType {
 	case "mysql":
 		return &mysqlCollector{
-			flavor:   config.InstanceType,
+			flavor:   config.FromType,
 			instance: instance,
-			config:   config.Config.(MysqlConfig),
+			config:   config.FromConfig.(*MysqlConfig),
 			Pos:      NewPosition(instance),
 		}, nil
 	}
@@ -39,7 +32,7 @@ func NewCollector(instance string) (collector, error) {
 type mysqlCollector struct {
 	flavor   string
 	instance string
-	config   MysqlConfig
+	config   *MysqlConfig
 	Pos      *position
 }
 
@@ -60,6 +53,10 @@ func (collector *mysqlCollector) Run() error {
 	if err != nil {
 		return err
 	}
+	dispenser, err := NewDispenser(collector.instance)
+	if err != nil {
+		return err
+	}
 	syncer := replication.NewBinlogSyncer(cfg)
 	// Start sync with specified binlog file and position
 	pos := mysql.Position{collector.Pos.Name, uint32(collector.Pos.Pos)}
@@ -68,8 +65,10 @@ func (collector *mysqlCollector) Run() error {
 		ev, _ := streamer.GetEvent(context.Background())
 		if event, err := converter.Convert(ev); err != nil {
 			return err
-		} else if event != nil{
-			fmt.Println(event)
+		} else if event != nil {
+			if err := dispenser.Send(event); err != nil {
+				return err
+			}
 		}
 		pos = syncer.GetNextPosition()
 		collector.Pos.Name = pos.Name

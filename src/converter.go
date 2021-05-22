@@ -1,6 +1,7 @@
 package src
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/go-mysql-org/go-mysql/client"
@@ -9,10 +10,18 @@ import (
 )
 
 type Event struct {
-	Table    string
-	DataBase string
-	Before   map[string]interface{}
-	After    map[string]interface{}
+	Table    string                 `json:"table"`
+	DataBase string                 `json:"data_base"`
+	Before   map[string]interface{} `json:"before"`
+	After    map[string]interface{} `json:"after"`
+}
+
+func (e *Event) String() string {
+	str, err := json.Marshal(e)
+	if err != nil {
+		return ""
+	}
+	return string(str)
 }
 
 // 创建转换器
@@ -21,11 +30,11 @@ func NewConverter(instance string) (converter, error) {
 	if err != nil {
 		return nil, err
 	}
-	switch config.InstanceType {
+	switch config.FromType {
 	case "mysql":
 		cvt := new(mysqlConverter)
 		cvt.instance = instance
-		cvt.config = config.Config.(MysqlConfig)
+		cvt.config = config.FromConfig.(*MysqlConfig)
 		cvt.tables = make(map[string]schema.Table)
 		return cvt, nil
 	}
@@ -39,7 +48,7 @@ type converter interface {
 type mysqlConverter struct {
 	instance string
 	tables   map[string]schema.Table
-	config   MysqlConfig
+	config   *MysqlConfig
 }
 
 // 转换
@@ -58,7 +67,7 @@ func (c *mysqlConverter) Convert(ev *replication.BinlogEvent) (*Event, error) {
 
 func (c *mysqlConverter) GetTable(database string, table string) error {
 	key := c.key(database, table)
-	config :=  c.config
+	config := c.config
 	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
 	conn, _ := client.Connect(addr, config.User, config.Passwd, config.DataBase)
 	tableInfo, err := schema.NewTable(conn, config.DataBase, config.Table)
