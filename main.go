@@ -29,6 +29,7 @@ func main() {
 			Passwd:   "123456",
 			DataBase: "test",
 			Table:    "tb_jd_district",
+			UniqueColumn:    "id",
 		},
 		ToType: "redis",
 		ToConfig: &src.RedisConfig{

@@ -8,6 +8,7 @@ import (
 
 // 创建RedisDispenser
 func newRedisDispenser(instance string) (dispenser, error) {
+	// 读取配置
 	config, err := getInstanceConfig(instance)
 	if err != nil {
 		return nil, err
@@ -16,6 +17,7 @@ func newRedisDispenser(instance string) (dispenser, error) {
 	if !ok {
 		return nil, errors.New("redis config convert failed")
 	}
+	// redis 是否可用
 	addr := fmt.Sprintf("%s:%d", redisConfig.Host, redisConfig.Port)
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
@@ -25,6 +27,7 @@ func newRedisDispenser(instance string) (dispenser, error) {
 	if err := client.Ping().Err(); err != nil {
 		return nil, err
 	}
+	// 创建dispenser
 	if config.ToType == "redis" {
 		return &redisDispenser{
 			prekey: instance,

@@ -9,6 +9,7 @@ type MysqlConfig struct {
 	Passwd   string
 	DataBase string
 	Table    string
+	UniqueColumn    string
 }
 
 type RedisConfig struct {

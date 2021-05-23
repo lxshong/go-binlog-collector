@@ -10,11 +10,19 @@ import (
 )
 
 type Event struct {
-	Table    string                 `json:"table"`
-	DataBase string                 `json:"data_base"`
-	Before   map[string]interface{} `json:"before"`
-	After    map[string]interface{} `json:"after"`
+	Table     string                 `json:"table"`
+	EventType string                 `json:"event_type"`
+	DataBase  string                 `json:"data_base"`
+	UniqueKey string                 `json:"unique_key"`
+	Before    map[string]interface{} `json:"before"`
+	After     map[string]interface{} `json:"after"`
 }
+
+const (
+	UPDATE = "update"
+	INSERT = "insert"
+	DELETE = "delete"
+)
 
 func (e *Event) String() string {
 	str, err := json.Marshal(e)
@@ -56,13 +64,27 @@ func (c *mysqlConverter) Convert(ev *replication.BinlogEvent) (*Event, error) {
 	switch ev.Event.(type) {
 	case *replication.RowsEvent:
 		rowsEvent := ev.Event.(*replication.RowsEvent)
-		if event, err := c.rowsEventConvert(rowsEvent); err != nil {
+		eventType := c.getEventType(ev.Header)
+		if event, err := c.rowsEventConvert(eventType,rowsEvent); err != nil {
 			return nil, err
 		} else {
 			return event, nil
 		}
 	}
 	return nil, nil
+}
+
+// 获取操作事件类型
+func (c *mysqlConverter) getEventType(header *replication.EventHeader) string {
+	switch header.EventType {
+	case replication.UPDATE_ROWS_EVENTv0, replication.UPDATE_ROWS_EVENTv1, replication.UPDATE_ROWS_EVENTv2:
+		return UPDATE
+	case replication.WRITE_ROWS_EVENTv0, replication.WRITE_ROWS_EVENTv1, replication.WRITE_ROWS_EVENTv2:
+		return INSERT
+	case replication.DELETE_ROWS_EVENTv0, replication.DELETE_ROWS_EVENTv1, replication.DELETE_ROWS_EVENTv2:
+		return DELETE
+	}
+	return ""
 }
 
 func (c *mysqlConverter) GetTable(database string, table string) error {
@@ -79,7 +101,7 @@ func (c *mysqlConverter) GetTable(database string, table string) error {
 }
 
 // RowsEvent 事件处理
-func (c *mysqlConverter) rowsEventConvert(rowsEvent *replication.RowsEvent) (*Event, error) {
+func (c *mysqlConverter) rowsEventConvert(eventType string,rowsEvent *replication.RowsEvent) (*Event, error) {
 	// 获取表结构
 	table := string(rowsEvent.Table.Table)
 	database := string(rowsEvent.Table.Schema)
@@ -91,9 +113,12 @@ func (c *mysqlConverter) rowsEventConvert(rowsEvent *replication.RowsEvent) (*Ev
 	tableInfo := c.tables[tableKey]
 	columns := tableInfo.Columns
 	columnsLen := len(columns)
-	event := new(Event)
-	event.Table = table
-	event.DataBase = database
+	event := &Event{
+		Table:     table,
+		DataBase:  database,
+		EventType:  eventType,
+		UniqueKey: c.config.UniqueColumn,
+	}
 
 	// 遍历表数据
 	rows := rowsEvent.Rows
