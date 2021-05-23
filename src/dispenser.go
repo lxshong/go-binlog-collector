@@ -7,14 +7,11 @@ type dispenser interface {
 	Send(event *Event) error
 }
 
-func NewDispenser(instance string) (dispenser, error) {
-	config, err := getInstanceConfig(instance)
-	if err != nil {
-		return nil, err
-	}
-	switch config.ToType {
-	case "redis":
-		return newRedisDispenser(instance)
+// 分发器
+func NewDispenser(instance string, toType string, config interface{}) (dispenser, error) {
+	switch toType {
+	case REDIS:
+		return newRedisDispenser(instance, config.(*RedisConfig))
 	}
 	return nil, errors.New("to tyoe unsupport")
 }

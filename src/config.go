@@ -2,21 +2,32 @@ package src
 
 import "errors"
 
+const (
+	MYSQL = "mysql"
+	REDIS = "redis"
+)
+
+const (
+	UPDATE = "update"
+	INSERT = "insert"
+	DELETE = "delete"
+)
+
 type MysqlConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Passwd   string
-	DataBase string
-	Table    string
-	UniqueColumn    string
+	Host         string
+	Port         int
+	User         string
+	Passwd       string
+	DataBase     string
+	Table        string
+	UniqueColumn string
 }
 
 type RedisConfig struct {
-	Host     string
-	Port     int
-	Passwd   string
-	DB int
+	Host   string
+	Port   int
+	Passwd string
+	DB     int
 }
 
 type InstanceConfig struct {

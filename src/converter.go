@@ -18,11 +18,6 @@ type Event struct {
 	After     map[string]interface{} `json:"after"`
 }
 
-const (
-	UPDATE = "update"
-	INSERT = "insert"
-	DELETE = "delete"
-)
 
 func (e *Event) String() string {
 	str, err := json.Marshal(e)

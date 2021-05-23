@@ -7,35 +7,23 @@ import (
 )
 
 // 创建RedisDispenser
-func newRedisDispenser(instance string) (dispenser, error) {
-	// 读取配置
-	config, err := getInstanceConfig(instance)
-	if err != nil {
-		return nil, err
-	}
-	redisConfig, ok := config.ToConfig.(*RedisConfig)
-	if !ok {
-		return nil, errors.New("redis config convert failed")
-	}
+func newRedisDispenser(instance string, config *RedisConfig) (dispenser, error) {
 	// redis 是否可用
-	addr := fmt.Sprintf("%s:%d", redisConfig.Host, redisConfig.Port)
+	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
 	client := redis.NewClient(&redis.Options{
 		Addr:     addr,
-		Password: redisConfig.Passwd,
-		DB:       redisConfig.DB,
+		Password: config.Passwd,
+		DB:       config.DB,
 	})
 	if err := client.Ping().Err(); err != nil {
 		return nil, err
 	}
 	// 创建dispenser
-	if config.ToType == "redis" {
-		return &redisDispenser{
-			prekey: instance,
-			config: redisConfig,
-			client: client,
-		}, nil
-	}
-	return nil, errors.New("redis config do not match")
+	return &redisDispenser{
+		prekey: instance,
+		config: config,
+		client: client,
+	}, nil
 }
 
 type redisDispenser struct {

@@ -23,13 +23,13 @@ func main() {
 	src.AddInstanceConfig(instance, &src.InstanceConfig{
 		FromType: "mysql",
 		FromConfig: &src.MysqlConfig{
-			Host:     "127.0.0.1",
-			Port:     23306,
-			User:     "root",
-			Passwd:   "123456",
-			DataBase: "test",
-			Table:    "tb_jd_district",
-			UniqueColumn:    "id",
+			Host:         "127.0.0.1",
+			Port:         23306,
+			User:         "root",
+			Passwd:       "123456",
+			DataBase:     "test",
+			Table:        "tb_jd_district",
+			UniqueColumn: "id",
 		},
 		ToType: "redis",
 		ToConfig: &src.RedisConfig{
@@ -40,14 +40,7 @@ func main() {
 		},
 	})
 
-	//convert,_ := src.NewConverter(instance)
-	//convert.GetTable("test","tb_jd_district")
-	//fmt.Println(convert)
-	if collector, err := src.NewCollector(instance); err != nil {
+	if err := src.Run(instance); err != nil {
 		fmt.Println(err)
-	} else {
-		if err := collector.Run(); err != nil {
-			fmt.Println(err)
-		}
 	}
 }
