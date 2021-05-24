@@ -26,9 +26,9 @@ type RedisConfig struct {
 }
 
 type InstanceConfig struct {
-	FromType string              `yaml:"from"`
-	ToType   string              `yaml:"to"`
-	Mysql    *MysqlConfig        `yaml:"mysql"`
-	Redis    *RedisConfig        `yaml:"redis"`
-	Rules    map[string][]string `yaml:"rules"`
+	FromType string                    `yaml:"from"`
+	ToType   string                    `yaml:"to"`
+	Mysql    *MysqlConfig              `yaml:"mysql"`
+	Redis    *RedisConfig              `yaml:"redis"`
+	Rules    map[string]map[string]int `yaml:"rules"`
 }

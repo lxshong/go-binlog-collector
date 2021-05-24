@@ -26,13 +26,14 @@ func (e *Event) String() string {
 }
 
 // 创建转换器
-func NewConverter(instance string, fromType string, config *MysqlConfig) (converter, error) {
+func NewConverter(instance string, fromType string, config *MysqlConfig, rules map[string]map[string]int) (converter, error) {
 	switch fromType {
 	case MYSQL:
 		cvt := new(mysqlConverter)
 		cvt.instance = instance
 		cvt.config = config
 		cvt.tables = make(map[string]schema.Table)
+		cvt.rules = rules
 		return cvt, nil
 	}
 	return nil, errors.New("instance type unsupport")
@@ -47,10 +48,12 @@ type mysqlConverter struct {
 	tables   map[string]schema.Table
 	config   *MysqlConfig
 	conn     *client.Conn
+	rules    map[string]map[string]int
 }
 
 // 转换
 func (c *mysqlConverter) Convert(ev *replication.BinlogEvent) (*Event, error) {
+	// 分类型处理
 	switch ev.Event.(type) {
 	case *replication.RowsEvent:
 		rowsEvent := ev.Event.(*replication.RowsEvent)
@@ -77,6 +80,7 @@ func (c *mysqlConverter) getEventType(header *replication.EventHeader) string {
 	return ""
 }
 
+// 获取表结构
 func (c *mysqlConverter) GetTable(database string, table string) error {
 	key := c.key(database, table)
 	if _, ok := c.tables[key]; ok {
@@ -102,9 +106,18 @@ func (c *mysqlConverter) GetTable(database string, table string) error {
 
 // RowsEvent 事件处理
 func (c *mysqlConverter) rowsEventConvert(eventType string, rowsEvent *replication.RowsEvent) (*Event, error) {
-	// 获取表结构
 	table := string(rowsEvent.Table.Table)
 	database := string(rowsEvent.Table.Schema)
+	// 过滤消息
+	if databaseInfo, ok := c.rules[database]; !ok {
+		return nil, nil
+	} else {
+		if flag, ok := databaseInfo[table]; !ok || flag != 1 {
+			return nil, nil
+		}
+	}
+
+	// 获取表结构
 	if err := c.GetTable(database, table); err != nil {
 		return nil, err
 	}

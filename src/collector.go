@@ -12,7 +12,7 @@ type collector interface {
 func NewCollector(instance string, config *InstanceConfig) (collector, error) {
 	switch config.FromType {
 	case MYSQL:
-		return newMysqlCollector(instance, config.Mysql)
+		return newMysqlCollector(instance, config.Mysql, config.Rules)
 	}
 	return nil, errors.New("instance type unsupport")
 }

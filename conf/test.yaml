@@ -7,7 +7,7 @@ mysql:
   passwd: 123456
 rules:
   test:
-    - tb_jd_district
+    tb_jd_district: 1
 redis:
   host: 127.0.0.1
   port: 26379
