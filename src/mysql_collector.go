@@ -36,7 +36,7 @@ func (collector *mysqlCollector) Run(call func(event *Event) error) error {
 	if err := collector.Pos.Init(); err != nil {
 		return err
 	}
-	converter, err := NewConverter(collector.instance)
+	converter, err := NewConverter(collector.instance, collector.flavor, collector.config)
 	if err != nil {
 		return err
 	}
@@ -46,6 +46,9 @@ func (collector *mysqlCollector) Run(call func(event *Event) error) error {
 	streamer, _ := syncer.StartSync(pos)
 	for {
 		ev, _ := streamer.GetEvent(context.Background())
+		if ev == nil {
+			continue
+		}
 		if event, err := converter.Convert(ev); err != nil {
 			return err
 		} else {

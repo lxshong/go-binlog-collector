@@ -13,11 +13,9 @@ type Event struct {
 	Table     string                 `json:"table"`
 	EventType string                 `json:"event_type"`
 	DataBase  string                 `json:"data_base"`
-	UniqueKey string                 `json:"unique_key"`
 	Before    map[string]interface{} `json:"before"`
 	After     map[string]interface{} `json:"after"`
 }
-
 
 func (e *Event) String() string {
 	str, err := json.Marshal(e)
@@ -28,16 +26,12 @@ func (e *Event) String() string {
 }
 
 // 创建转换器
-func NewConverter(instance string) (converter, error) {
-	config, err := getInstanceConfig(instance)
-	if err != nil {
-		return nil, err
-	}
-	switch config.FromType {
-	case "mysql":
+func NewConverter(instance string, fromType string, config *MysqlConfig) (converter, error) {
+	switch fromType {
+	case MYSQL:
 		cvt := new(mysqlConverter)
 		cvt.instance = instance
-		cvt.config = config.FromConfig.(*MysqlConfig)
+		cvt.config = config
 		cvt.tables = make(map[string]schema.Table)
 		return cvt, nil
 	}
@@ -52,6 +46,7 @@ type mysqlConverter struct {
 	instance string
 	tables   map[string]schema.Table
 	config   *MysqlConfig
+	conn     *client.Conn
 }
 
 // 转换
@@ -60,7 +55,7 @@ func (c *mysqlConverter) Convert(ev *replication.BinlogEvent) (*Event, error) {
 	case *replication.RowsEvent:
 		rowsEvent := ev.Event.(*replication.RowsEvent)
 		eventType := c.getEventType(ev.Header)
-		if event, err := c.rowsEventConvert(eventType,rowsEvent); err != nil {
+		if event, err := c.rowsEventConvert(eventType, rowsEvent); err != nil {
 			return nil, err
 		} else {
 			return event, nil
@@ -84,10 +79,20 @@ func (c *mysqlConverter) getEventType(header *replication.EventHeader) string {
 
 func (c *mysqlConverter) GetTable(database string, table string) error {
 	key := c.key(database, table)
+	if _, ok := c.tables[key]; ok {
+		return nil
+	}
 	config := c.config
 	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
-	conn, _ := client.Connect(addr, config.User, config.Passwd, config.DataBase)
-	tableInfo, err := schema.NewTable(conn, config.DataBase, config.Table)
+	if c.conn == nil {
+		conn, err := client.Connect(addr, config.User, config.Passwd, database)
+		if err != nil {
+			return err
+		}
+		c.conn = conn
+	}
+	fmt.Println("get table info of  ", database+"."+table)
+	tableInfo, err := schema.NewTable(c.conn, database, table)
 	if err != nil {
 		return err
 	}
@@ -96,7 +101,7 @@ func (c *mysqlConverter) GetTable(database string, table string) error {
 }
 
 // RowsEvent 事件处理
-func (c *mysqlConverter) rowsEventConvert(eventType string,rowsEvent *replication.RowsEvent) (*Event, error) {
+func (c *mysqlConverter) rowsEventConvert(eventType string, rowsEvent *replication.RowsEvent) (*Event, error) {
 	// 获取表结构
 	table := string(rowsEvent.Table.Table)
 	database := string(rowsEvent.Table.Schema)
@@ -111,8 +116,7 @@ func (c *mysqlConverter) rowsEventConvert(eventType string,rowsEvent *replicatio
 	event := &Event{
 		Table:     table,
 		DataBase:  database,
-		EventType:  eventType,
-		UniqueKey: c.config.UniqueColumn,
+		EventType: eventType,
 	}
 
 	// 遍历表数据

@@ -8,10 +8,10 @@ type dispenser interface {
 }
 
 // 分发器
-func NewDispenser(instance string, toType string, config interface{}) (dispenser, error) {
-	switch toType {
+func NewDispenser(instance string, config *InstanceConfig) (dispenser, error) {
+	switch config.ToType {
 	case REDIS:
-		return newRedisDispenser(instance, config.(*RedisConfig))
+		return newRedisDispenser(instance, config.Redis)
 	}
 	return nil, errors.New("to tyoe unsupport")
 }
