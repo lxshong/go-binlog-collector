@@ -1,4 +1,8 @@
-package src
+package utils
+
+import (
+	"gopkg.in/yaml.v2"
+)
 
 const (
 	MYSQL = "mysql"
@@ -26,9 +30,23 @@ type RedisConfig struct {
 }
 
 type InstanceConfig struct {
+	Instance string                    `yaml:"instance"`
 	FromType string                    `yaml:"from"`
 	ToType   string                    `yaml:"to"`
 	Mysql    *MysqlConfig              `yaml:"mysql"`
 	Redis    *RedisConfig              `yaml:"redis"`
 	Rules    map[string]map[string]int `yaml:"rules"`
+}
+
+// 解析配置文件
+func ParseConfig(file string) (*InstanceConfig, error) {
+	content, err := FileGetContent(file)
+	if err != nil {
+		return nil, err
+	}
+	config := &InstanceConfig{}
+	if err := yaml.Unmarshal([]byte(content), config); err != nil {
+		return nil, err
+	}
+	return config, nil
 }

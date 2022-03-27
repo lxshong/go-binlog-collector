@@ -1,13 +1,15 @@
-package src
+package dispense
 
 import (
 	"errors"
 	"fmt"
+	"go-binlog-collector/src/utils"
+
 	"github.com/go-redis/redis"
 )
 
 // 创建RedisDispenser
-func newRedisDispenser(instance string, config *RedisConfig) (dispenser, error) {
+func newRedisDispenser(instance string, config *utils.RedisConfig) (dispenser, error) {
 	// redis 是否可用
 	addr := fmt.Sprintf("%s:%d", config.Host, config.Port)
 	client := redis.NewClient(&redis.Options{
@@ -28,12 +30,12 @@ func newRedisDispenser(instance string, config *RedisConfig) (dispenser, error) 
 
 type redisDispenser struct {
 	prekey string
-	config *RedisConfig
+	config *utils.RedisConfig
 	client *redis.Client
 }
 
 // 发送
-func (d *redisDispenser) Send(event *Event) error {
+func (d *redisDispenser) Do(event *utils.Event) error {
 	if d.config == nil {
 		return errors.New("redis config unexists")
 	}

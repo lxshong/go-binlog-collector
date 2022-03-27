@@ -1,58 +1,36 @@
-package src
+package convert
 
 import (
-	"encoding/json"
+	"context"
 	"errors"
 	"fmt"
+	"go-binlog-collector/src/utils"
+
 	"github.com/go-mysql-org/go-mysql/client"
 	"github.com/go-mysql-org/go-mysql/replication"
 	"github.com/go-mysql-org/go-mysql/schema"
 )
 
-type Event struct {
-	Table     string                 `json:"table"`
-	EventType string                 `json:"event_type"`
-	DataBase  string                 `json:"data_base"`
-	Before    map[string]interface{} `json:"before"`
-	After     map[string]interface{} `json:"after"`
-}
-
-func (e *Event) String() string {
-	str, err := json.Marshal(e)
-	if err != nil {
-		return ""
-	}
-	return string(str)
-}
-
 // 创建转换器
-func NewConverter(instance string, fromType string, config *MysqlConfig, rules map[string]map[string]int) (converter, error) {
-	switch fromType {
-	case MYSQL:
-		cvt := new(mysqlConverter)
-		cvt.instance = instance
-		cvt.config = config
-		cvt.tables = make(map[string]schema.Table)
-		cvt.rules = rules
-		return cvt, nil
+func newMysqlConverter(instance string, config *utils.MysqlConfig, rules map[string]map[string]int) *mysqlConverter {
+	return &mysqlConverter{
+		instance: instance,
+		config:   config,
+		tables:   make(map[string]schema.Table),
+		rules:    rules,
 	}
-	return nil, errors.New("instance type unsupport")
-}
-
-type converter interface {
-	Convert(binlogEvent *replication.BinlogEvent) (*Event, error)
 }
 
 type mysqlConverter struct {
 	instance string
 	tables   map[string]schema.Table
-	config   *MysqlConfig
+	config   *utils.MysqlConfig
 	conn     *client.Conn
 	rules    map[string]map[string]int
 }
 
 // 转换
-func (c *mysqlConverter) Convert(ev *replication.BinlogEvent) (*Event, error) {
+func (c *mysqlConverter) Do(ctx context.Context, ev *replication.BinlogEvent) (*utils.Event, error) {
 	// 分类型处理
 	switch ev.Event.(type) {
 	case *replication.RowsEvent:
@@ -71,11 +49,11 @@ func (c *mysqlConverter) Convert(ev *replication.BinlogEvent) (*Event, error) {
 func (c *mysqlConverter) getEventType(header *replication.EventHeader) string {
 	switch header.EventType {
 	case replication.UPDATE_ROWS_EVENTv0, replication.UPDATE_ROWS_EVENTv1, replication.UPDATE_ROWS_EVENTv2:
-		return UPDATE
+		return utils.UPDATE
 	case replication.WRITE_ROWS_EVENTv0, replication.WRITE_ROWS_EVENTv1, replication.WRITE_ROWS_EVENTv2:
-		return INSERT
+		return utils.INSERT
 	case replication.DELETE_ROWS_EVENTv0, replication.DELETE_ROWS_EVENTv1, replication.DELETE_ROWS_EVENTv2:
-		return DELETE
+		return utils.DELETE
 	}
 	return ""
 }
@@ -105,7 +83,7 @@ func (c *mysqlConverter) GetTable(database string, table string) error {
 }
 
 // RowsEvent 事件处理
-func (c *mysqlConverter) rowsEventConvert(eventType string, rowsEvent *replication.RowsEvent) (*Event, error) {
+func (c *mysqlConverter) rowsEventConvert(eventType string, rowsEvent *replication.RowsEvent) (*utils.Event, error) {
 	table := string(rowsEvent.Table.Table)
 	database := string(rowsEvent.Table.Schema)
 	// 过滤消息
@@ -126,7 +104,7 @@ func (c *mysqlConverter) rowsEventConvert(eventType string, rowsEvent *replicati
 	tableInfo := c.tables[tableKey]
 	columns := tableInfo.Columns
 	columnsLen := len(columns)
-	event := &Event{
+	event := &utils.Event{
 		Table:     table,
 		DataBase:  database,
 		EventType: eventType,

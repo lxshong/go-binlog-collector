@@ -1,28 +1,27 @@
-package src
+package utils
 
 import (
 	"encoding/json"
 	"fmt"
-	"go-binlog-collector/utils"
 )
 
 // 位置信息
-type position struct {
+type Position struct {
 	Instance string `json:"instance"`
 	Name     string `json:"name"`
 	Pos      int    `json:"pos"`
 }
 
-func NewPosition(instance string) *position {
-	return &position{
+func NewPosition(instance string) *Position {
+	return &Position{
 		Instance: instance,
 	}
 }
 
 // 从缓存中初始化
-func (p *position) Init() error {
+func (p *Position) Init() error {
 
-	content, err := utils.FileGetContent(p.getFileName())
+	content, err := FileGetContent(p.getFileName())
 	if err != nil {
 		return err
 	}
@@ -36,14 +35,14 @@ func (p *position) Init() error {
 }
 
 // 缓存到文件
-func (p *position) Save() error {
+func (p *Position) Save() error {
 	bs, err := json.Marshal(p)
 	if err != nil {
 		return err
 	}
-	return utils.FilePutContent(p.getFileName(), string(bs))
+	return FilePutContent(p.getFileName(), string(bs))
 }
 
-func (p *position) getFileName() string {
+func (p *Position) getFileName() string {
 	return fmt.Sprintf("./tmp/%s.pos", p.Instance)
 }

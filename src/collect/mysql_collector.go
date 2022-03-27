@@ -1,22 +1,25 @@
-package src
+package collect
 
 import (
 	"context"
+	"go-binlog-collector/src/convert"
+	"go-binlog-collector/src/utils"
+
 	"github.com/go-mysql-org/go-mysql/mysql"
 	"github.com/go-mysql-org/go-mysql/replication"
 )
 
-func newMysqlCollector(instance string, config *MysqlConfig, rules map[string]map[string]int) (collector, error) {
-	converter, err := NewConverter(instance, MYSQL, config, rules)
+func newMysqlCollector(config *utils.InstanceConfig) (Collector, error) {
+	converter, err := convert.NewConverter(config)
 	if err != nil {
 		return nil, err
 	}
 	return &mysqlCollector{
-		flavor:    MYSQL,
-		instance:  instance,
-		config:    config,
+		flavor:    utils.MYSQL,
+		instance:  config.Instance,
+		config:    config.Mysql,
 		converter: converter,
-		Pos:       NewPosition(instance),
+		Pos:       utils.NewPosition(config.Instance),
 	}, nil
 }
 
@@ -24,12 +27,12 @@ func newMysqlCollector(instance string, config *MysqlConfig, rules map[string]ma
 type mysqlCollector struct {
 	flavor    string
 	instance  string
-	config    *MysqlConfig
-	converter converter
-	Pos       *position
+	config    *utils.MysqlConfig
+	converter convert.Converter
+	Pos       *utils.Position
 }
 
-func (collector *mysqlCollector) Run(call func(event *Event) error) error {
+func (collector *mysqlCollector) Do(ctx context.Context, call func(event *utils.Event) error) error {
 
 	cfg := replication.BinlogSyncerConfig{
 		ServerID: 101,
@@ -52,7 +55,7 @@ func (collector *mysqlCollector) Run(call func(event *Event) error) error {
 			continue
 		}
 		// 事件转换
-		if event, err := collector.converter.Convert(ev); err != nil {
+		if event, err := collector.converter.Do(ctx, ev); err != nil {
 			return err
 		} else {
 			if event != nil {
