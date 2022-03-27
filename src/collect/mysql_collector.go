@@ -48,19 +48,29 @@ func (collector *mysqlCollector) Do(ctx context.Context, call func(event *utils.
 	syncer := replication.NewBinlogSyncer(cfg)
 	// Start sync with specified binlog file and position
 	pos := mysql.Position{collector.Pos.Name, uint32(collector.Pos.Pos)}
-	streamer, _ := syncer.StartSync(pos)
+	streamer, err := syncer.StartSync(pos)
+	if err != nil {
+		return err
+	}
 	for {
-		ev, _ := streamer.GetEvent(context.Background())
+		ev, err := streamer.GetEvent(ctx)
+		if err != nil {
+			utils.Logger.Fatalln(err)
+			return err
+		}
 		if ev == nil {
+			utils.Logger.Println("event is nil")
 			continue
 		}
 		// 事件转换
 		if event, err := collector.converter.Do(ctx, ev); err != nil {
+			utils.Logger.Fatalln(err)
 			return err
 		} else {
 			if event != nil {
 				// 分发
 				if err := call(event); err != nil {
+					utils.Logger.Fatalln(err)
 					return err
 				}
 			}
@@ -69,6 +79,7 @@ func (collector *mysqlCollector) Do(ctx context.Context, call func(event *utils.
 			collector.Pos.Name = pos.Name
 			collector.Pos.Pos = int(pos.Pos)
 			if err := collector.Pos.Save(); err != nil {
+				utils.Logger.Fatalln(err)
 				return err
 			}
 		}

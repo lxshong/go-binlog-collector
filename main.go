@@ -7,10 +7,13 @@ import (
 	"go-binlog-collector/src"
 )
 
-var conf *string
+var (
+	conf *string
+)
 
 func init() {
-	conf = flag.String("conf", "./conf", "the path of config file")
+	conf = flag.String("conf", "./conf/default.yaml", "the path of config file")
+	flag.Parse()
 }
 
 func main() {

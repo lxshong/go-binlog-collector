@@ -7,6 +7,7 @@ import (
 const (
 	MYSQL = "mysql"
 	REDIS = "redis"
+	STDIO = "stdio"
 )
 
 const (

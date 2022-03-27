@@ -13,6 +13,8 @@ type dispenser interface {
 // 分发器
 func NewDispenser(config *utils.InstanceConfig) (dispenser, error) {
 	switch config.ToType {
+	case utils.STDIO:
+		return newStdioDispenser(config.Instance, config.Redis)
 	case utils.REDIS:
 		return newRedisDispenser(config.Instance, config.Redis)
 	}

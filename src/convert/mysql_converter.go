@@ -31,12 +31,15 @@ type mysqlConverter struct {
 
 // 转换
 func (c *mysqlConverter) Do(ctx context.Context, ev *replication.BinlogEvent) (*utils.Event, error) {
+	utils.Logger.Println("convert")
 	// 分类型处理
 	switch ev.Event.(type) {
 	case *replication.RowsEvent:
+		utils.Logger.Println("RowsEvent")
 		rowsEvent := ev.Event.(*replication.RowsEvent)
 		eventType := c.getEventType(ev.Header)
 		if event, err := c.rowsEventConvert(eventType, rowsEvent); err != nil {
+			utils.Logger.Println(err)
 			return nil, err
 		} else {
 			return event, nil
@@ -88,9 +91,11 @@ func (c *mysqlConverter) rowsEventConvert(eventType string, rowsEvent *replicati
 	database := string(rowsEvent.Table.Schema)
 	// 过滤消息
 	if databaseInfo, ok := c.rules[database]; !ok {
+		utils.Logger.Println(fmt.Sprintf("%s 数据库跳过", database))
 		return nil, nil
 	} else {
 		if flag, ok := databaseInfo[table]; !ok || flag != 1 {
+			utils.Logger.Println(fmt.Sprintf("%s.%s 表跳过", database, table))
 			return nil, nil
 		}
 	}

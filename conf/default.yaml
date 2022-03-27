@@ -1,13 +1,15 @@
+instance: default
 from: mysql
-to: redis
+to: stdio
 mysql:
   host: 127.0.0.1
-  port: 23306
+  port: 3306
   user: root
   passwd: 123456
 rules:
-  test:
-    tb_jd_district: 1
+  master_slave_db:
+    user: 1
+    user2: 1
 redis:
   host: 127.0.0.1
   port: 26379
